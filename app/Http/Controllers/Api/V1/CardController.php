@@ -84,43 +84,7 @@ class CardController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $card = Card::find($id);
-
-        if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
-        }
-    
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'img' => 'required|image',
-            'state' => 'required|in:Coming Soon,Available',
-            'date' => 'required|date',
-            'description' => 'nullable|string'
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation errors',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-    
-        $card->fill($validator->validated());
-
-        if ($request->hasFile('img') && $request->file('img')->isValid()) {
-            $extension = $request->file('img')->getClientOriginalExtension();
-            $filename = 'card-'.time().'-'.Str::random(10).'.'.$extension;
-            $path = $request->file('img')->move(public_path('images'), $filename);
-    
-            $card->img = 'images/'.$filename;
-        }
-
-        $card->save();
-    
-        return response()->json([
-            'message' => 'Card updated successfully',
-            'data' => $card
-        ]);
+        
     }
 
     /**

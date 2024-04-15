@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 
+
 class ItemController extends Controller
 {
     /**
@@ -32,7 +33,7 @@ class ItemController extends Controller
             'title' => 'required|string|max:255',
             'img' => 'required|image',  // Asegúrate de que es un archivo de imagen
             'price' => 'required|numeric',
-            'status' => 'required|in:Available,Out of stock,Sold out,Coming soon'
+            'status' => 'required|in:Available,Out of stock,Sold out,Coming Soon'
         ]);
 
         if($validator->fails()) {
@@ -85,46 +86,9 @@ class ItemController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $item = Item::finf($id);
-
-        if(!$item) {
-            return response()->json([
-                'message' => 'Item not found'
-            ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'img' => 'required|image',
-            'price' => 'required|numeric',
-            'status' => 'required|in:Available,Out of stock'
-        ]);
-
-        if($validator->fails()) {
-            
-            return response()->json([
-                'message' => 'Validation errors',
-                'errors' => $validator->erros()
-            ], 422); // 422 Unprocessable Entity
-        }
-
-        $item->fill($validator->validated());
-
-        if($request->hasFile('img') && $request->file('img')->isValid()) {
-            $extension = request()->file('img')->getClientOriginalExtension();
-            $filename = 'item-'.time().'-'.Str::random(10).'.'.$extension;
-            $path = $request->file('img')->move(public_path('images'), $filename);
-
-            $item->img = 'images/'.$filename;
-            $item->save();
-        }
-
-        return response()->json([
-            'message' => 'Item updated successfully!',
-            'data' => $item
-        ]);
-
+        
     }
+
 
     /**
      * Remove the specified resource from storage.
