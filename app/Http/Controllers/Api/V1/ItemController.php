@@ -86,7 +86,67 @@ class ItemController extends Controller
      */
     public function update(Request $request, $id)
     {
-        
+        $item = Item::find($id);
+
+        if(!$item) {
+            return response()->json([
+                'message' => 'Item not found'
+            ], 404);
+        }
+
+        // Define las reglas de validación. `sometimes` se añade para permitir actualizaciones parciales
+        $rules = [
+            'title' => 'sometimes|required|string|max:255',
+            'img' => 'sometimes|image',
+            'price' => 'sometimes|required|numeric',
+            'status' => 'sometimes|required|in:Available,Out of stock,Sold out,Coming Soon'
+        ];
+
+        // Validación de la solicitud
+        $validator = Validator::make($request->all(), $rules);
+
+        if($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Actualizar los campos del ítem con los datos validados que estén presentes
+        $item->fill($validator->validated());
+
+        // Verificar si hay una nueva imagen para subir
+        if($request->hasFile('img') && $request->file('img')->isValid()) {
+            // Eliminar la imagen anterior si existe
+            if($item->img) {
+                $imagePath = $item->img;
+                if (!Str::startsWith($imagePath, 'public/')) {
+                    $imagePath = 'public/' . $imagePath;
+                }
+            
+                // Usar el Storage facade para eliminar la imagen
+                if (Storage::exists($imagePath)) {
+                    Storage::delete($imagePath);
+                }
+            }
+
+            // Subir y almacenar la nueva imagen
+            $extension = $request->file('img')->getClientOriginalExtension();
+            $filename = 'item-' . time() . '-' . Str::random(10) . '.' . $extension;
+            $path = $request->file('img')->storeAs('images', $filename, 'public');
+
+            // Actualizar la propiedad 'img' con la nueva ruta de la imagen
+            $item->img = $path; // 'images/' . $filename; si quieres incluir el subdirectorio 'images'
+        }
+
+        // Guardar los cambios del ítem en la base de datos
+        $item->save();
+
+        // Devolver una respuesta JSON con el ítem actualizado
+        return response()->json([
+            'message' => 'Item updated successfully!',
+            'data' => $item
+        ], 200);
     }
 
 
