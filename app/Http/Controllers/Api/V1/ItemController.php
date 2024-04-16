@@ -97,7 +97,7 @@ class ItemController extends Controller
             ], 404); // 404 Not Found
         }
 
-        if ($item) {
+        
             //Comprueba si una imagen existe y la elimina
             $imagePath = $item->img;
             if (!Str::startsWith($imagePath, 'public/')) {
@@ -108,7 +108,7 @@ class ItemController extends Controller
             if (Storage::exists($imagePath)) {
                 Storage::delete($imagePath);
             }
-        }
+        
 
         // Define las reglas de validación. `sometimes` se añade para permitir actualizaciones parciales
         $rules = [
