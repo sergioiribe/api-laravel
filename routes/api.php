@@ -13,7 +13,7 @@ Route::prefix('v1')->namespace('Api\V1')->group(function () {
 });
 
 Route::get('/images/{filename}', function ($filename) {
-    $path = storage_path('app/public/' . $filename);
+    $path = storage_path('app/public/images/' . $filename);
 
     if (!File::exists($path)) {
         abort(404);
