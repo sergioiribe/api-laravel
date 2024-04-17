@@ -160,8 +160,8 @@ class ItemController extends Controller
         $imagePath = $item->img;
 
         // Usar el Storage facade para eliminar la imagen del disco S3
-        if (Storage::disk('s3')->exists($imagePath)) {
-            Storage::disk('s3')->delete($imagePath);
+        if (Storage::disk('s3')->exists('images/item-3-1713391638-PvpiUoWsRl.jpg')) {
+            Storage::disk('s3')->delete('images/item-3-1713391638-PvpiUoWsRl.jpg');
         }
 
         $item->delete();
