@@ -94,12 +94,17 @@ class ItemController extends Controller
             ], 404); // 404 Not Found
         }
 
-        // Comprueba si una imagen existe en S3 y la elimina
-        if ($item->img) {
-            $existingImagePath = $item->img; // Asumimos que esto es una ruta relativa en S3
-            if (Storage::disk('s3')->exists($existingImagePath)) {
-                Storage::disk('s3')->delete($existingImagePath);
-            }
+        // La URL completa del objeto en S3.
+        $s3Url = $item->img;
+
+        // Parsear la URL para obtener la clave del objeto S3.
+        // Suponiendo que la URL es como "https://s3.region.amazonaws.com/bucket-name/images/filename.jpg"
+        $parsedUrl = parse_url($s3Url);
+        $s3Key = ltrim($parsedUrl['path'], '/');  // Elimina el slash inicial si está presente.
+
+        // Eliminar la imagen de S3.
+        if (Storage::disk('s3')->exists($s3Key)) {
+            Storage::disk('s3')->delete($s3Key);
         }
 
         // Reglas de validación, `sometimes` permite actualizaciones parciales
@@ -123,15 +128,15 @@ class ItemController extends Controller
         // Actualiza los campos del item con los datos validados
         $item->fill($validator->validated());
 
-        // Verificar si hay una nueva imagen para subir
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
-            // Subir y almacenar la nueva imagen en S3
             $extension = $request->file('img')->getClientOriginalExtension();
             $filename = 'item-' . $item->id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
+            // Cambio: Usar el disco 's3' para almacenar el archivo
             $path = $request->file('img')->storeAs('images', $filename, 's3');
 
-            // Guardar la ruta relativa de la imagen en S3 en la propiedad 'img'
-            $item->img = $path;
+            // Guardar la URL completa del archivo en S3
+            $item->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
+            $item->save();
         }
 
         // Guardar los cambios en la base de datos
@@ -175,5 +180,4 @@ class ItemController extends Controller
             'message' => 'Item deleted successfully!'
         ], 200);
     }
-
 }
