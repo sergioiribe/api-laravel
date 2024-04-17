@@ -54,7 +54,7 @@ class ItemController extends Controller
             $path = $request->file('img')->storeAs('images', $filename, 's3');
 
             // Guardar la URL completa del archivo en S3
-            $item->img = 'https://elephant-bucket-s3.s3.amazonaws.com/' . $path;
+            $item->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
             $item->save();
         }
 
