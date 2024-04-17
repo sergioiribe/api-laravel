@@ -152,22 +152,28 @@ class ItemController extends Controller
         if (!$item) {
             return response()->json([
                 'message' => 'Item not found'
-            ], 404); // 404 Not Found
+            ], 404);
         }
 
-        // Asumiendo que 'img' almacena la ruta relativa en el bucket de S3
-        // que es lo que devuelve el método storeAs
-        $imagePath = $item->img;
+        // La URL completa del objeto en S3.
+        $s3Url = $item->img;
 
-        // Usar el Storage facade para eliminar la imagen del disco S3
-        if (Storage::disk('s3')->exists('images/item-3-1713391638-PvpiUoWsRl.jpg')) {
-            Storage::disk('s3')->delete('images/item-3-1713391638-PvpiUoWsRl.jpg');
+        // Parsear la URL para obtener la clave del objeto S3.
+        // Suponiendo que la URL es como "https://s3.region.amazonaws.com/bucket-name/images/filename.jpg"
+        $parsedUrl = parse_url($s3Url);
+        $s3Key = ltrim($parsedUrl['path'], '/');  // Elimina el slash inicial si está presente.
+
+        // Eliminar la imagen de S3.
+        if (Storage::disk('s3')->exists($s3Key)) {
+            Storage::disk('s3')->delete($s3Key);
         }
 
+        // Eliminar el ítem de la base de datos.
         $item->delete();
 
         return response()->json([
             'message' => 'Item deleted successfully!'
-        ], 200); // 200 OK
+        ], 200);
     }
+
 }
