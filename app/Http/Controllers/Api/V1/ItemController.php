@@ -136,7 +136,6 @@ class ItemController extends Controller
 
             // Guardar la URL completa del archivo en S3
             $item->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
-            $item->save();
         }
 
         // Guardar los cambios en la base de datos
