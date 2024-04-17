@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 
 
 
+
 class ItemController extends Controller
 {
     /**
@@ -31,7 +32,7 @@ class ItemController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
-            'img' => 'required|image',  // Asegúrate de que es un archivo de imagen
+            'img' => 'required|image',
             'price' => 'required|numeric',
             'status' => 'required|in:Available,Out of stock,Sold out,Coming Soon'
         ]);
@@ -40,10 +41,8 @@ class ItemController extends Controller
             return response()->json([
                 'message' => 'Validation errors',
                 'errors' => $validator->errors()
-            ], 422); // 422 Unprocessable Entity
+            ], 422);
         }
-
-        // Si la validación es exitosa, procede con la lógica para guardar el modelo
 
         $item = new Item($validator->validated());
         $item->save();
@@ -51,19 +50,18 @@ class ItemController extends Controller
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
             $extension = $request->file('img')->getClientOriginalExtension();
             $filename = 'item-' . $item->id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
-            // Aquí usamos el método store() que automáticamente pone el archivo en el directorio 'images' en el disco 'public'
-            $path = $request->file('img')->storeAs('images', $filename, 'public');
+            // Cambio: Usar el disco 's3' para almacenar el archivo
+            $path = $request->file('img')->storeAs('images', $filename, 's3');
 
-            // Guardamos la ruta relativa, considerando el enlace simbólico 'storage' en la carpeta 'public'
-            $item->img = 'images/' . $filename;
+            // Guardar la URL completa del archivo en S3
+            $item->img = 'https://elephant-bucket-s3.s3.amazonaws.com/' . $path;
             $item->save();
         }
 
         return response()->json([
             'message' => 'Item created successfully!',
             'data' => $item
-        ], 201); // 201 Created
-
+        ], 201);
     }
 
     /**
@@ -88,7 +86,6 @@ class ItemController extends Controller
 
     public function update(Request $request, $id)
     {
-
         $item = Item::find($id);
 
         if (!$item) {
@@ -97,20 +94,15 @@ class ItemController extends Controller
             ], 404); // 404 Not Found
         }
 
-        
-            //Comprueba si una imagen existe y la elimina
-            $imagePath = $item->img;
-            if (!Str::startsWith($imagePath, 'public/')) {
-                $imagePath = 'public/' . $imagePath;
+        // Comprueba si una imagen existe en S3 y la elimina
+        if ($item->img) {
+            $existingImagePath = $item->img; // Asumimos que esto es una ruta relativa en S3
+            if (Storage::disk('s3')->exists($existingImagePath)) {
+                Storage::disk('s3')->delete($existingImagePath);
             }
+        }
 
-            // Usar el Storage facade para eliminar la imagen
-            if (Storage::exists($imagePath)) {
-                Storage::delete($imagePath);
-            }
-        
-
-        // Define las reglas de validación. `sometimes` se añade para permitir actualizaciones parciales
+        // Reglas de validación, `sometimes` permite actualizaciones parciales
         $rules = [
             'title' => 'sometimes|required|string|max:255',
             'img' => 'sometimes|image',
@@ -128,30 +120,30 @@ class ItemController extends Controller
             ], 422);
         }
 
-        // Actualizar los campos del ítem con los datos validados que estén presentes
+        // Actualiza los campos del item con los datos validados
         $item->fill($validator->validated());
 
         // Verificar si hay una nueva imagen para subir
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
-
-            // Subir y almacenar la nueva imagen
+            // Subir y almacenar la nueva imagen en S3
             $extension = $request->file('img')->getClientOriginalExtension();
             $filename = 'item-' . $item->id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
-            $path = $request->file('img')->storeAs('images', $filename, 'public');
+            $path = $request->file('img')->storeAs('images', $filename, 's3');
 
-            // Actualizar la propiedad 'img' con la nueva ruta de la imagen
-            $item->img = $path; // 'images/' . $filename; si quieres incluir el subdirectorio 'images'
+            // Guardar la ruta relativa de la imagen en S3 en la propiedad 'img'
+            $item->img = $path;
         }
 
-        // Guardar los cambios del ítem en la base de datos
+        // Guardar los cambios en la base de datos
         $item->save();
 
-        // Devolver una respuesta JSON con el ítem actualizado
+        // Devolver una respuesta JSON con el item actualizado
         return response()->json([
             'message' => 'Item updated successfully!',
             'data' => $item
         ], 200);
     }
+
 
     public function destroy($id)
     {
@@ -163,17 +155,13 @@ class ItemController extends Controller
             ], 404); // 404 Not Found
         }
 
-        if ($item) {
-            //Comprueba si una imagen existe y la elimina
-            $imagePath = $item->img;
-            if (!Str::startsWith($imagePath, 'public/')) {
-                $imagePath = 'public/' . $imagePath;
-            }
+        // Asumiendo que 'img' almacena la ruta relativa en el bucket de S3
+        // que es lo que devuelve el método storeAs
+        $imagePath = $item->img;
 
-            // Usar el Storage facade para eliminar la imagen
-            if (Storage::exists($imagePath)) {
-                Storage::delete($imagePath);
-            }
+        // Usar el Storage facade para eliminar la imagen del disco S3
+        if (Storage::disk('s3')->exists($imagePath)) {
+            Storage::disk('s3')->delete($imagePath);
         }
 
         $item->delete();

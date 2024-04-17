@@ -12,18 +12,3 @@ Route::prefix('v1')->namespace('Api\V1')->group(function () {
     Route::apiResource('items', ItemController::class);
 });
 
-Route::get('/images/{filename}', function ($filename) {
-    $path = storage_path('app/public/images/' . $filename);
-
-    if (!File::exists($path)) {
-        abort(404);
-    }
-
-    $file = File::get($path);
-    $type = File::mimeType($path);
-
-    $response = Response::make($file, 200);
-    $response->header("Content-Type", $type);
-
-    return $response;
-});
