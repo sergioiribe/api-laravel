@@ -50,13 +50,12 @@ class CardController extends Controller
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
             $extension = $request->file('img')->getClientOriginalExtension();
             $filename = 'card-' . $card->id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
-            // Aquí usamos el método store() que automáticamente pone el archivo en el directorio 'images' en el disco 'public'
-            $path = $request->file('img')->storeAs('images', $filename, 'public');
+            // Cambio: Usar el disco 's3' para almacenar el archivo
+            $path = $request->file('img')->storeAs('images', $filename, 's3');
 
-            // Guardamos la ruta relativa, considerando el enlace simbólico 'storage' en la carpeta 'public'
-            $card->img = 'images/' . $filename;
+            // Guardar la URL completa del archivo en S3
+            $card->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
             $card->save();
-
         }
 
         return response()->json([
@@ -96,15 +95,17 @@ class CardController extends Controller
         }
 
 
-        //Comprueba si una imagen existe y la elimina
-        $imagePath = $card->img;
-        if (!Str::startsWith($imagePath, 'public/')) {
-            $imagePath = 'public/' . $imagePath;
-        }
+        // La URL completa del objeto en S3.
+        $s3Url = $card->img;
 
-        // Usar el Storage facade para eliminar la imagen
-        if (Storage::exists($imagePath)) {
-            Storage::delete($imagePath);
+        // Parsear la URL para obtener la clave del objeto S3.
+        // Suponiendo que la URL es como "https://s3.region.amazonaws.com/bucket-name/images/filename.jpg"
+        $parsedUrl = parse_url($s3Url);
+        $s3Key = ltrim($parsedUrl['path'], '/');  // Elimina el slash inicial si está presente.
+
+        // Eliminar la imagen de S3.
+        if (Storage::disk('s3')->exists($s3Key)) {
+            Storage::disk('s3')->delete($s3Key);
         }
 
 
@@ -130,16 +131,14 @@ class CardController extends Controller
         // Actualizar los campos del ítem con los datos validados que estén presentes
         $card->fill($validator->validated());
 
-        // Verificar si hay una nueva imagen para subir
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
-
-            // Subir y almacenar la nueva imagen
             $extension = $request->file('img')->getClientOriginalExtension();
             $filename = 'card-' . $card->id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
-            $path = $request->file('img')->storeAs('images', $filename, 'public');
+            // Cambio: Usar el disco 's3' para almacenar el archivo
+            $path = $request->file('img')->storeAs('images', $filename, 's3');
 
-            // Actualizar la propiedad 'img' con la nueva ruta de la imagen
-            $card->img = $path; // 'images/' . $filename; si quieres incluir el subdirectorio 'images'
+            // Guardar la URL completa del archivo en S3
+            $card->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
         }
 
         // Guardar los cambios del ítem en la base de datos
@@ -164,17 +163,17 @@ class CardController extends Controller
             return response()->json(['message' => 'Card not found'], 404);
         }
 
-        if ($card) {
-            //Comprueba si una imagen existe y la elimina
-            $imagePath = $card->img;
-            if (!Str::startsWith($imagePath, 'public/')) {
-                $imagePath = 'public/' . $imagePath;
-            }
+        // La URL completa del objeto en S3.
+        $s3Url = $card->img;
 
-            // Usar el Storage facade para eliminar la imagen
-            if (Storage::exists($imagePath)) {
-                Storage::delete($imagePath);
-            }
+        // Parsear la URL para obtener la clave del objeto S3.
+        // Suponiendo que la URL es como "https://s3.region.amazonaws.com/bucket-name/images/filename.jpg"
+        $parsedUrl = parse_url($s3Url);
+        $s3Key = ltrim($parsedUrl['path'], '/');  // Elimina el slash inicial si está presente.
+
+        // Eliminar la imagen de S3.
+        if (Storage::disk('s3')->exists($s3Key)) {
+            Storage::disk('s3')->delete($s3Key);
         }
 
         $card->delete();
