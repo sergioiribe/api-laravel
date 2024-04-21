@@ -5,18 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Item extends Model
+class SpanishCard extends Model
 {
     use HasFactory;
 
-    protected $table = 'items';
-
-    protected $primaryKey = 'id_item';
+    
+    protected $table = 'spanish_cards';
 
     protected $fillable = [
         'title',
         'img',
-        'price',
-        'status'
+        'state',
+        'date',
+        'description'
     ];
 }
