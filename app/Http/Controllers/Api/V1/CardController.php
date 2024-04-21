@@ -20,7 +20,7 @@ class CardController extends Controller
     {
         $cards = Card::all();
 
-        return response()->json(['data' => $cards]);
+        return $cards;
     }
 
     /**
