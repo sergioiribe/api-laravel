@@ -49,7 +49,7 @@ class CardController extends Controller
 
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
             $extension = $request->file('img')->getClientOriginalExtension();
-            $filename = 'card-' . $card->id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
+            $filename = 'card-' . $card->card_id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
             // Cambio: Usar el disco 's3' para almacenar el archivo
             $path = $request->file('img')->storeAs('images', $filename, 's3');
 
@@ -133,7 +133,7 @@ class CardController extends Controller
 
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
             $extension = $request->file('img')->getClientOriginalExtension();
-            $filename = 'card-' . $card->id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
+            $filename = 'card-' . $card->card_id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
             // Cambio: Usar el disco 's3' para almacenar el archivo
             $path = $request->file('img')->storeAs('images', $filename, 's3');
 

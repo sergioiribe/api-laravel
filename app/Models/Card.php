@@ -11,6 +11,8 @@ class Card extends Model
 
     protected $table = 'cards';
 
+    protected $primaryKey = 'card_id';
+
     protected $fillable = [
         'title',
         'img',

@@ -3,27 +3,22 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Item;
+use App\Models\SpanishCard;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
-
-
-
-class ItemController extends Controller
+class SpanishCardController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $items = Item::all();
+        $cards = SpanishCard::all();
 
-        return $items;
-
+        return $cards;
     }
 
     /**
@@ -33,36 +28,38 @@ class ItemController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
-            'img' => 'required|image',
-            'price' => 'required|numeric',
-            'status' => 'required|in:Available,Out of stock,Sold out,Coming Soon'
+            'img' => 'required|image',  // Asegúrate de que es un archivo de imagen
+            'state' => 'required|in:Coming Soon,Available',
+            'date' => 'required|date',
+            'description' => 'sometimes|nullable|string'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation errors',
                 'errors' => $validator->errors()
-            ], 422);
+            ], 422); // 422 Unprocessable Entity
         }
 
-        $item = new Item($validator->validated());
-        $item->save();
+        // Si la validación es exitosa, procede con la lógica para guardar el modelo
+        $card = new SpanishCard($validator->validated());
+        $card->save();
 
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
             $extension = $request->file('img')->getClientOriginalExtension();
-            $filename = 'item-' . $item->item_id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
+            $filename = 'card-' . $card->card_id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
             // Cambio: Usar el disco 's3' para almacenar el archivo
             $path = $request->file('img')->storeAs('images', $filename, 's3');
 
             // Guardar la URL completa del archivo en S3
-            $item->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
-            $item->save();
+            $card->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
+            $card->save();
         }
 
         return response()->json([
-            'message' => 'Item created successfully!',
-            'data' => $item
-        ], 201);
+            'message' => 'Card created successfully!',
+            'data' => $card
+        ], 201); // 201 Created
     }
 
     /**
@@ -70,33 +67,31 @@ class ItemController extends Controller
      */
     public function show($id)
     {
-        $item = Item::find($id);
+        $card = SpanishCard::find($id);
 
-        if (!$item) {
-            return response()->json([
-                'message' => 'Item not found'
-            ], 404); // 404 Not Found
+        if (!$card) {
+            return response()->json(['message' => 'Card not found'], 404);
         }
 
-        return response()->json(['data' => $item]);
+        return response()->json(['data' => $card]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-
     public function update(Request $request, $id)
     {
-        $item = Item::find($id);
+        $card = SpanishCard::find($id);
 
-        if (!$item) {
+        if (!$card) {
             return response()->json([
                 'message' => 'Item not found'
             ], 404); // 404 Not Found
         }
 
+
         // La URL completa del objeto en S3.
-        $s3Url = $item->img;
+        $s3Url = $card->img;
 
         // Parsear la URL para obtener la clave del objeto S3.
         // Suponiendo que la URL es como "https://s3.region.amazonaws.com/bucket-name/images/filename.jpg"
@@ -108,12 +103,14 @@ class ItemController extends Controller
             Storage::disk('s3')->delete($s3Key);
         }
 
-        // Reglas de validación, `sometimes` permite actualizaciones parciales
+
+        // Define las reglas de validación. `sometimes` se añade para permitir actualizaciones parciales
         $rules = [
-            'title' => 'sometimes|required|string|max:255',
-            'img' => 'sometimes|image',
-            'price' => 'sometimes|required|numeric',
-            'status' => 'sometimes|required|in:Available,Out of stock,Sold out,Coming Soon'
+            'title' => 'sometimes|string|max:255',
+            'img' => 'sometimes|image',  // Asegúrate de que es un archivo de imagen
+            'state' => 'sometimes|in:Coming Soon,Available',
+            'date' => 'sometimes|date',
+            'description' => 'sometimes|nullable|string'
         ];
 
         // Validación de la solicitud
@@ -126,42 +123,42 @@ class ItemController extends Controller
             ], 422);
         }
 
-        // Actualiza los campos del item con los datos validados
-        $item->fill($validator->validated());
+        // Actualizar los campos del ítem con los datos validados que estén presentes
+        $card->fill($validator->validated());
 
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
             $extension = $request->file('img')->getClientOriginalExtension();
-            $filename = 'item-' . $item->item_id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
+            $filename = 'card-' . $card->card_id . '-' . time() . '-' . Str::random(10) . '.' . $extension;
             // Cambio: Usar el disco 's3' para almacenar el archivo
             $path = $request->file('img')->storeAs('images', $filename, 's3');
 
             // Guardar la URL completa del archivo en S3
-            $item->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
+            $card->img = 'https://elephant-bucket-s3.s3.us-east-2.amazonaws.com/' . $path;
         }
 
-        // Guardar los cambios en la base de datos
-        $item->save();
+        // Guardar los cambios del ítem en la base de datos
+        $card->save();
 
-        // Devolver una respuesta JSON con el item actualizado
+        // Devolver una respuesta JSON con el ítem actualizado
         return response()->json([
             'message' => 'Item updated successfully!',
-            'data' => $item
+            'data' => $card
         ], 200);
     }
 
-
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy($id)
     {
-        $item = Item::find($id);
+        $card = SpanishCard::find($id);
 
-        if (!$item) {
-            return response()->json([
-                'message' => 'Item not found'
-            ], 404);
+        if (!$card) {
+            return response()->json(['message' => 'Card not found'], 404);
         }
 
         // La URL completa del objeto en S3.
-        $s3Url = $item->img;
+        $s3Url = $card->img;
 
         // Parsear la URL para obtener la clave del objeto S3.
         // Suponiendo que la URL es como "https://s3.region.amazonaws.com/bucket-name/images/filename.jpg"
@@ -173,11 +170,8 @@ class ItemController extends Controller
             Storage::disk('s3')->delete($s3Key);
         }
 
-        // Eliminar el ítem de la base de datos.
-        $item->delete();
+        $card->delete();
 
-        return response()->json([
-            'message' => 'Item deleted successfully!'
-        ], 200);
+        return response()->json(['message' => 'Card deleted successfully'], 200); // 200 OK
     }
 }

@@ -11,7 +11,7 @@ class Item extends Model
 
     protected $table = 'items';
 
-    protected $primaryKey = 'id_item';
+    protected $primaryKey = 'item_id';
 
     protected $fillable = [
         'title',

@@ -3,24 +3,21 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Item;
+use App\Models\SpanishItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
-
-
-
-class ItemController extends Controller
+class SpanishItemController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $items = Item::all();
+        $items = SpanishItem::all();
 
         return $items;
 
@@ -45,7 +42,7 @@ class ItemController extends Controller
             ], 422);
         }
 
-        $item = new Item($validator->validated());
+        $item = new SpanishItem($validator->validated());
         $item->save();
 
         if ($request->hasFile('img') && $request->file('img')->isValid()) {
@@ -70,7 +67,7 @@ class ItemController extends Controller
      */
     public function show($id)
     {
-        $item = Item::find($id);
+        $item = SpanishItem::find($id);
 
         if (!$item) {
             return response()->json([
@@ -84,10 +81,9 @@ class ItemController extends Controller
     /**
      * Update the specified resource in storage.
      */
-
     public function update(Request $request, $id)
     {
-        $item = Item::find($id);
+        $item = SpanishItem::find($id);
 
         if (!$item) {
             return response()->json([
@@ -149,10 +145,12 @@ class ItemController extends Controller
         ], 200);
     }
 
-
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy($id)
     {
-        $item = Item::find($id);
+        $item = SpanishItem::find($id);
 
         if (!$item) {
             return response()->json([
