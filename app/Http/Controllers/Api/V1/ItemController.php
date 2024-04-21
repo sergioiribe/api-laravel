@@ -22,7 +22,8 @@ class ItemController extends Controller
     {
         $items = Item::all();
 
-        return response()->json(['data' => $items]);
+        return $items;
+        
     }
 
     /**
